@@ -32,7 +32,7 @@ class _BaseWorker(object):
         # done with processing all the pending tasks and is currently blocked on
         # queue waiting for new task. At this point we insert a dummy task to
         # unblock the thread.
-        self._queue.put(None)
+        self._queue.put_nowait(None)
 
     def _run(self):
         """
@@ -59,7 +59,6 @@ class _BaseWorker(object):
                 self._is_done = True
             else:
                 task.run()
-            # self._queue.task_done()
 
         LOGGER.debug(
             "Worker: %s - stopped. Pending task count: %s",
