@@ -11,7 +11,7 @@ class ThreadWorker(threading.Thread, base._BaseWorker):
     python MRO works.
     """
 
-    def __init__(self, queue, ephemeral, name_prefix):
+    def __init__(self, queue, ephemeral):
         # Since Thread is the first class mentioned in inheritance list, this
         # call will go to Thread class and make sure that worker thread is
         # correctly initialized.
@@ -21,11 +21,9 @@ class ThreadWorker(threading.Thread, base._BaseWorker):
         # functionality.
         base._BaseWorker.__init__(self, queue, ephemeral)
 
-        self._name_prefix = name_prefix or self.__class__.__name__
-
     @property
     def id(self):
-        return "__".join((self._name_prefix, str(self.ident)))
+        return "__".join((self.__class__.__name__, str(self.ident)))
 
     def run(self):
         """Overrides base implementation and calls worker's _run method."""
