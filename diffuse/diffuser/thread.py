@@ -28,10 +28,9 @@ class _Task(object):
             # in event of an exception.
             LOGGER.error("Error while running target: %s", str(exc))
             self.future.set_exception(exc)
-            # Break a reference cycle with the exception 'exc'
-            self = None
         else:
             self.future.set_result(result)
+            return result
 
 
 class ThreadDiffuser(base._SyncDiffuser):
