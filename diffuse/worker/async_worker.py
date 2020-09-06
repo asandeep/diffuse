@@ -1,7 +1,7 @@
 import asyncio
-from diffuse.worker import base
-
 import logging
+
+from diffuse.worker import base
 
 LOGGER = logging.getLogger(__name__)
 
@@ -38,7 +38,8 @@ class AsyncWorker(base._BaseWorker):
             if task is None:
                 self._finished.set()
             else:
-                await task.run()
+                result = await task.run()
+                await self._process_result(result)
 
         LOGGER.debug(
             "%s - finished. Pending task count: %s",
@@ -54,3 +55,6 @@ class AsyncWorker(base._BaseWorker):
                 return None
 
         return await self._queue.get()
+
+    async def _process_result(self, result):
+        pass

@@ -58,10 +58,16 @@ class _BaseWorker(object):
             if task is None:
                 self._is_done = True
             else:
-                task.run()
+                result = task.run()
+                self._process_result(result)
 
         LOGGER.debug(
             "Worker: %s - stopped. Pending task count: %s",
             self.id,
             self._queue.qsize(),
         )
+
+
+    def _process_result(self, result):
+        """Implementation specific processing of task result."""
+        pass

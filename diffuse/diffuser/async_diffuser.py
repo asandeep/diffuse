@@ -1,11 +1,10 @@
 import asyncio
-import math
-
-from diffuse.worker import async_worker
-from diffuse.diffuser import base
-
 import logging
+import math
 import threading
+
+from diffuse.diffuser import base
+from diffuse.worker import async_worker
 
 LOGGER = logging.getLogger(__name__)
 
@@ -29,6 +28,7 @@ class _AsyncTask(object):
             self.future.set_exception(exc)
         else:
             self.future.set_result(result)
+            return result
 
 
 class AsyncDiffuser(base._ASyncDiffuser):
