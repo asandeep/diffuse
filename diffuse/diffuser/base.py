@@ -82,10 +82,13 @@ class _BaseDiffuser:
         returned. However, starting the worker is implementation specific and
         left with diffuser to do.
         """
-        if self._worker_pool.size >= self.max_workers:
+
+        # No need to initialize new worker if there aren't any pending tasks in
+        # queue.
+        if not self.task_queue.qsize():
             return
 
-        if self._worker_pool.size >= self.task_queue.qsize():
+        if self._worker_pool.size >= self.max_workers:
             return
 
         worker = self._WORKER_CLASS(self.task_queue, self._ephemeral, None)
