@@ -1,4 +1,5 @@
 import logging
+import queue
 
 LOGGER = logging.getLogger(__name__)
 
@@ -32,6 +33,12 @@ class _BaseWorker(object):
         # done with processing all the pending tasks and is currently blocked on
         # queue waiting for new task. At this point we insert a dummy task to
         # unblock the thread.
+
+        # Ephemeral tasks automatically dies as soon as there are no tasks left
+        # in queue to process.
+        if self._ephemeral:
+            return
+
         self._queue.put_nowait(None)
 
     def _run(self):
@@ -67,6 +74,19 @@ class _BaseWorker(object):
             self._queue.qsize(),
         )
 
+    def _get_task(self):
+        """
+        Convenience method to retrieve task from queue.
+
+        Blocks if there isn't any task in queue and this is not an ephemeral
+        worker.
+        """
+        try:
+            return self._queue.get(block=not self._ephemeral)
+        except queue.Empty:
+            pass
+
+        return None
 
     def _process_result(self, result):
         """Implementation specific processing of task result."""

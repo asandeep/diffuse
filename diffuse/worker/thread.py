@@ -1,6 +1,6 @@
 import threading
+
 from diffuse.worker import base
-import queue as thread_safe_queue
 
 
 class ThreadWorker(threading.Thread, base._BaseWorker):
@@ -28,11 +28,3 @@ class ThreadWorker(threading.Thread, base._BaseWorker):
     def run(self):
         """Overrides base implementation and calls worker's _run method."""
         self._run()
-
-    def _get_task(self):
-        try:
-            return self._queue.get(block=not self._ephemeral)
-        except thread_safe_queue.Empty:
-            pass
-
-        return None
