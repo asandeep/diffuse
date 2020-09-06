@@ -1,11 +1,13 @@
 __version__ = "0.1.0"
 
 import enum
-from diffuse.diffuser import thread, async_diffuser
+from diffuse.diffuser import thread, async_diffuser, process
+
 
 
 class Diffuser(enum.Enum):
     THREAD = thread.ThreadDiffuser
+    PROCESS = process.ProcessDiffuser
     ASYNC = async_diffuser.AsyncDiffuser
 
     @classmethod
