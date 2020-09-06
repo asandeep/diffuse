@@ -1,8 +1,8 @@
+import asyncio
 import logging
 from concurrent import futures
 
 from diffuse import pool
-import asyncio
 
 LOGGER = logging.getLogger(__name__)
 
@@ -69,7 +69,7 @@ class _BaseDiffuser:
         """
         raise NotImplementedError()
 
-    def _init_worker(self):
+    def _init_worker(self, **kwargs):
         """Initializes and returns a new worker if required.
 
         Below conditions should meet for worker to get initialized:
@@ -91,7 +91,7 @@ class _BaseDiffuser:
         if self._worker_pool.size >= self.max_workers:
             return
 
-        worker = self._WORKER_CLASS(self.task_queue, self._ephemeral, None)
+        worker = self._WORKER_CLASS(self.task_queue, self._ephemeral, **kwargs)
         self._worker_pool.add(worker)
         LOGGER.debug("Created new worker: %s", worker.id)
         return worker
@@ -121,12 +121,24 @@ class _SyncDiffuser(_BaseDiffuser):
                 raise RuntimeError("Cannot diffuse on closed Diffuser.")
 
             task = self._TASK_CLASS(self._target, *args, **kwargs)
-            self.task_queue.put(task)
-            worker = self._init_worker()
+            self._diffuse(task)
+
+            worker = self._init_worker(**self._worker_init_kwargs())
             if worker:
                 worker.start()
 
             return task.future
+
+    def _diffuse(self, task):
+        """Adds task to queue."""
+        self.task_queue.put(task)
+
+    def _worker_init_kwargs(self):
+        """
+        Returns implementation specific additional arguments that are passed
+        while initializing a new worker instance.
+        """
+        return {}
 
     def close(self, wait=True, cancel_pending=False):
         LOGGER.debug("Close request received.")
@@ -137,13 +149,26 @@ class _SyncDiffuser(_BaseDiffuser):
                 self._drain_tasks()
 
             self._worker_pool.shutdown(wait=wait)
+            self._cleanup(wait)
+
+    def _cleanup(self, wait: bool):
+        """
+        Any implementation specific cleanup actions to be performed when
+        diffuser is closed.
+
+        This method is called after clearing pending tasks from queue and
+        stopping all running workers.
+
+        Args:
+            wait: Whether to wait for exiting tasks to complete processing.
+        """
+        pass
 
     def __enter__(self):
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self.close(wait=True)
-        return False
+        self.close()
 
 
 class _ASyncDiffuser(_BaseDiffuser):
@@ -173,6 +198,15 @@ class _ASyncDiffuser(_BaseDiffuser):
                 self._drain_tasks()
 
             await self._worker_pool.shutdown_async(wait=wait)
+
+            await self._cleanup(wait)
+
+    async def _cleanup(self, wait):
+        """
+        Any implementation specific cleanup actions to be performed when
+        diffuser is closed.
+        """
+        pass
 
     async def __aenter__(self):
         return self
