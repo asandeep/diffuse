@@ -43,7 +43,7 @@ class ThreadDiffuser(base._SyncDiffuser):
             max_workers = min(32, (os.cpu_count() or 1) + 4)
 
         if max_workers <= 0:
-            raise ValueError("max_workers must be greater than 0")
+            raise ValueError("max_workers must be greater than 0.")
 
         LOGGER.debug("Max workers: %s", max_workers)
         self._max_workers = max_workers

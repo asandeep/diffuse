@@ -50,6 +50,11 @@ class _BaseDiffuser:
         """Returns Diffuser specific lock implementation."""
         raise NotImplementedError("Must be implemented by child class.")
 
+    @property
+    def closed(self):
+        """Whether the diffuser is closed."""
+        return self._closed
+
     def diffuse(self, *args, **kwargs):
         """Diffuses given arguments and keyword arguments to target callable."""
         raise NotImplementedError()
@@ -108,7 +113,7 @@ class _BaseDiffuser:
                 task = self.task_queue.get_nowait()
                 if task is not None:
                     task.future.cancel()
-            except _QUEUE_EMPTY_EXCEPTION:
+            except self._QUEUE_EMPTY_EXCEPTION:
                 break
 
 
