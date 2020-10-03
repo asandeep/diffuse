@@ -3,7 +3,7 @@ import threading
 from diffuse.worker import base
 
 
-class ThreadWorker(threading.Thread, base._BaseWorker):
+class ThreadWorker(threading.Thread, base._SyncWorker):
     """
     A worker implementation that runs in a separate thread.
 
@@ -11,7 +11,7 @@ class ThreadWorker(threading.Thread, base._BaseWorker):
     python MRO works.
     """
 
-    def __init__(self, queue, ephemeral):
+    def __init__(self, task_queue, ephemeral):
         # Since Thread is the first class mentioned in inheritance list, this
         # call will go to Thread class and make sure that worker thread is
         # correctly initialized.
@@ -19,7 +19,7 @@ class ThreadWorker(threading.Thread, base._BaseWorker):
 
         # This call is required to initialize the standalone worker
         # functionality.
-        base._BaseWorker.__init__(self, queue, ephemeral)
+        base._BaseWorker.__init__(self, task_queue, ephemeral)
 
     @property
     def id(self):

@@ -2,16 +2,15 @@ import logging
 import multiprocessing
 import queue
 import threading
-import time
 from concurrent import futures
 
+from diffuse import worker
 from diffuse.diffuser import base
-from diffuse.worker import process as process_worker
 
 LOGGER = logging.getLogger(__name__)
 
 
-class _TaskInstance(object):
+class _TaskInstance:
     """
     Reflects the object that is added to task queue.
 
@@ -45,7 +44,7 @@ class _TaskInstance(object):
         return self
 
 
-class _Task(object):
+class _Task:
     def __init__(self, target, *args, **kwargs):
         self.future = futures.Future()
         self.instance = _TaskInstance(target, *args, **kwargs)
@@ -53,35 +52,22 @@ class _Task(object):
 
 class ProcessDiffuser(base._SyncDiffuser):
     """
-    A diffuser implementation that executes tasks in separate child process.
+    A diffuser implementation that executes tasks in separate child processes.
     """
 
-    _WORKER_CLASS = process_worker.ProcessWorker
-    _TASK_CLASS = _Task
     _QUEUE_EMPTY_EXCEPTION = queue.Empty
+    _TASK_CLASS = _Task
+    _WORKER_CLASS = worker.ProcessWorker
 
     def __init__(self, target, ephemeral=False, max_workers=None):
 
-        if max_workers is None:
-            max_workers = multiprocessing.cpu_count()
-
-        if max_workers <= 0:
-            raise ValueError("max_workers must be greater than 0")
-
-        if max_workers > multiprocessing.cpu_count():
+        if max_workers and max_workers > multiprocessing.cpu_count():
             raise ValueError(
-                "Worker count %s is more than supported by system (%s)",
-                max_workers,
-                multiprocessing.cpu_count(),
+                f"Worker count {max_workers} is more than supported "
+                f"by system ({multiprocessing.cpu_count()})."
             )
 
-        LOGGER.debug("Max workers: %s", max_workers)
-        self._max_workers = max_workers
-
-        self._task_queue = multiprocessing.Queue()
-        self._close_lock = threading.Lock()
-
-        super().__init__(target, ephemeral)
+        super().__init__(target, ephemeral, max_workers)
 
         # Apart from task queue, we also need a result queue to receive results
         # from worker processes.
@@ -102,17 +88,11 @@ class ProcessDiffuser(base._SyncDiffuser):
         )
         self._result_processor.start()
 
-    @property
-    def task_queue(self):
-        return self._task_queue
+    def _init_task_queue(self):
+        return multiprocessing.Queue()
 
-    @property
-    def max_workers(self):
-        return self._max_workers
-
-    @property
-    def close_lock(self):
-        return self._close_lock
+    def _get_max_workers(self):
+        return multiprocessing.cpu_count()
 
     def _diffuse(self, task):
         # Since task is processed in completely separate process, it would be
@@ -126,7 +106,7 @@ class ProcessDiffuser(base._SyncDiffuser):
 
         self._pending_tasks[task.instance.id] = task
 
-        super(ProcessDiffuser, self)._diffuse(task.instance)
+        super()._diffuse(task.instance)
 
     def _worker_init_kwargs(self):
         """
@@ -139,7 +119,7 @@ class ProcessDiffuser(base._SyncDiffuser):
         Notifies result processor to shutdown.
 
         Args:
-            wait: Whether to wait for all results to be processed from queue.
+            wait: Whether to wait for cleanup actions to be completed.
         """
         self._result_queue.put_nowait(None)
 
@@ -158,9 +138,6 @@ class ProcessDiffuser(base._SyncDiffuser):
                 continue
 
             task = self._pending_tasks[task_instance.id]
-            # If task was already cancelled by user, skip further processing.
-            if task.future.cancelled():
-                return
 
             if task_instance.result:
                 task.future.set_result(task_instance.result)
@@ -168,3 +145,19 @@ class ProcessDiffuser(base._SyncDiffuser):
                 task.future.set_exception(task_instance.exception)
 
             del self._pending_tasks[task_instance.id]
+
+    def _drain_tasks(self):
+        """
+        Overrides base implementation to skip cancelling the task future.
+
+        Since future is set to running as soon as it is added to queue, same
+        cannot be cancelled during drain operation.
+        """
+        while True:
+
+            try:
+                # During unit tests, `get_nowait` isn't somehow removing task
+                # from queue. Using `get` with timeout works as expected.
+                self._task_queue.get(timeout=1 / 1000)
+            except self._QUEUE_EMPTY_EXCEPTION:
+                break

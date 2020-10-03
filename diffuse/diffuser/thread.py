@@ -1,11 +1,10 @@
 import logging
 import os
-import queue as thread_safe_queue
-import threading
+import queue
 from concurrent import futures
 
+from diffuse import worker
 from diffuse.diffuser import base
-from diffuse.worker import thread as thread_worker
 
 LOGGER = logging.getLogger(__name__)
 
@@ -34,33 +33,12 @@ class _Task(object):
 
 
 class ThreadDiffuser(base._SyncDiffuser):
-    _WORKER_CLASS = thread_worker.ThreadWorker
+    _QUEUE_EMPTY_EXCEPTION = queue.Empty
     _TASK_CLASS = _Task
-    _QUEUE_EMPTY_EXCEPTION = thread_safe_queue.Empty
+    _WORKER_CLASS = worker.ThreadWorker
 
-    def __init__(self, target, ephemeral=False, max_workers=None):
-        if max_workers is None:
-            max_workers = min(32, (os.cpu_count() or 1) + 4)
+    def _init_task_queue(self):
+        return queue.Queue()
 
-        if max_workers <= 0:
-            raise ValueError("max_workers must be greater than 0.")
-
-        LOGGER.debug("Max workers: %s", max_workers)
-        self._max_workers = max_workers
-
-        self._task_queue = thread_safe_queue.Queue()
-        self._close_lock = threading.Lock()
-
-        super().__init__(target, ephemeral)
-
-    @property
-    def task_queue(self):
-        return self._task_queue
-
-    @property
-    def max_workers(self):
-        return self._max_workers
-
-    @property
-    def close_lock(self):
-        return self._close_lock
+    def _get_max_workers(self):
+        return min(32, (os.cpu_count() or 1) + 4)

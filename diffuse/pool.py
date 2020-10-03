@@ -24,7 +24,7 @@ class WorkerPool:
         # Weekrefs are maintained till they are garbage collected. Simply
         # returning the length of pool will give incorrect result in case worker
         # is dead but not yet garbage collected.
-        return len([worker for worker in self._workers if worker.is_alive()])
+        return len([worker for worker in self._workers if worker.is_running()])
 
     def add(self, worker):
         """
@@ -53,7 +53,7 @@ class WorkerPool:
 
         # Wait for worker processes to complete.
         for task_worker in self._workers:
-            task_worker.join()
+            task_worker.wait()
             LOGGER.debug("Stopped worker: %s", task_worker.id)
 
     async def shutdown_async(self, wait):
@@ -67,7 +67,7 @@ class WorkerPool:
             return
 
         for task_worker in self._workers:
-            await task_worker.join()
+            await task_worker.wait()
             LOGGER.debug("Stopped worker: %s", task_worker.id)
 
     def _stop_workers(self):
