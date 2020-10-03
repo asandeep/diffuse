@@ -7,7 +7,7 @@ from diffuse.worker import base
 LOGGER = logging.getLogger(__name__)
 
 
-class ProcessWorker(multiprocessing.Process, base._BaseWorker):
+class ProcessWorker(multiprocessing.Process, base._SyncWorker):
     """
     A worker implementation that runs in a separate child process.
 
@@ -15,7 +15,7 @@ class ProcessWorker(multiprocessing.Process, base._BaseWorker):
     python MRO works.
     """
 
-    def __init__(self, queue, ephemeral, result_queue):
+    def __init__(self, task_queue, ephemeral, result_queue):
         # Since Process is the first class mentioned in inheritance list, this
         # call will go to Process class and make sure that worker process is
         # correctly initialized.
@@ -23,7 +23,7 @@ class ProcessWorker(multiprocessing.Process, base._BaseWorker):
 
         # This call is required to initialize the standalone worker
         # functionality.
-        base._BaseWorker.__init__(self, queue, ephemeral)
+        base._BaseWorker.__init__(self, task_queue, ephemeral)
 
         self._result_queue = result_queue
 

@@ -1,78 +1,57 @@
+import asyncio
 import logging
 import queue
 
 LOGGER = logging.getLogger(__name__)
 
 
-class _BaseWorker(object):
-    def __init__(self, queue, ephemeral):
-        # Queue to be monitored for tasks.
-        self._queue = queue
+class _BaseWorker:
+    """
+    Base worker implementation.
 
+    Not meant to be directly inherited by concrete worker implementations.
+
+    Attributes:
+        task_queue: A queue to be monitored for tasks to arrive.
+        ephemeral: Whether to continue running or die if there are no more
+            tasks in queue to be processed.
+    """
+
+    def __init__(self, task_queue, ephemeral):
+        self._task_queue = task_queue
         self._ephemeral = ephemeral
 
-        # Indicates that there are no more tasks to be processed and that the
-        # worker is now going to shut down.
-        self._is_done = False
+        # When true, indicates that the worker has detected stop signal, is in
+        # process of shutting down and won't be picking up new tasks. This can
+        # happen in either of below two cases:
+        # 1. When `stop` method is called on worker instance by Diffuser.
+        # 2. For **ephemeral** workers, when there are no more tasks in queue to
+        #    be processed.
+        self._stop_signal = False
 
-    def start(self):
+    @property
+    def id(self):
         """
-        Provides a way to call run method in a separate thread/process.
+        Returns a unique ID for this worker instance.
+
+        Depending on implementation, the ID might not be available till the
+        worker is started.
         """
         raise NotImplementedError
 
-    def stop(self):
+    def is_running(self):
+        """Returns whether worker is currently alive and running."""
+        raise NotImplementedError
+
+    def start(self):
         """
-        Sets conditions that will cause worker process to stop running.
+        Starts this worker instance.
 
-        It should be noted that calling this method won't terminate the worker
-        immediately. The worker will keep running until there are no more real
-        pending tasks left in queue.
+        The worker will start pulling and processing tasks from queue as soon as
+        this method is called, and it will continue to running until a stop is
+        received or there are no more tasks in queue (for ephemeral workers).
         """
-        # Even when execution flag is set to false, the thread might be already
-        # done with processing all the pending tasks and is currently blocked on
-        # queue waiting for new task. At this point we insert a dummy task to
-        # unblock the thread.
-
-        # Ephemeral tasks automatically dies as soon as there are no tasks left
-        # in queue to process.
-        if self._ephemeral:
-            return
-
-        self._queue.put_nowait(None)
-
-    def _run(self):
-        """
-        Fetches task from queue and starts processing.
-
-        This method should be called from Thread/Process run methods.
-        """
-        # Keep running until parent process calls stop to indicate that there
-        # are no more tasks or we have encountered a dummy task. while
-        # self.execution_flag or not self._is_done:
-        # TODO(sandeep): Checking execution flag shouldn't really be required
-        # as, as soon as worker finds a dummy task, it knows that it should
-        # shutdown.
-        while not self._is_done:
-            LOGGER.debug("Worker:%s reading message from queue.", self.id)
-
-            task = self._get_task()
-            # Since None task is only inserted at the end of queue when caller
-            # has asked thread to stop, we can be sure that there are no more
-            # pending tasks.
-            # This assertion doesn't however hold when caller thread itself gets
-            # killed and calls child's thread stop method before dying.
-            if task is None:
-                self._is_done = True
-            else:
-                result = task.run()
-                self._process_result(result)
-
-        LOGGER.debug(
-            "Worker: %s - stopped. Pending task count: %s",
-            self.id,
-            self._queue.qsize(),
-        )
+        raise NotImplementedError
 
     def _get_task(self):
         """
@@ -81,13 +60,115 @@ class _BaseWorker(object):
         Blocks if there isn't any task in queue and this is not an ephemeral
         worker.
         """
+        raise NotImplementedError
+
+    def _process_result(self, result):
+        """Implementation specific processing of task result."""
+
+        pass
+
+    def stop(self):
+        """
+        Notifies worker instance to stop running.
+
+        The worker will shut itself down as soon as it receives the stop signal.
+        However it should be noted that calling this method won't immediately
+        terminate the worker instance. The worker will continue processing the
+        task that it picked before it received the signal.
+        """
+        # Ephemeral tasks automatically dies as soon as there are no tasks left
+        # in queue to process.
+        if self._ephemeral:
+            return
+
+        # Put a None task in queue. Worker identifies this as a shutdown signal.
+        self._task_queue.put_nowait(None)
+
+    def wait(self):
+        """
+        Waits for worker to complete processing current task.
+
+        Must be called after *stop* call or else the worker might block forever.
+        """
+        raise NotImplementedError
+
+
+class _SyncWorker(_BaseWorker):
+    """
+    Base class for worker implementations that uses synchronous processing
+    methods i.e. Thread/Subprocess.
+    """
+
+    def is_running(self):
+        return self.is_alive()
+
+    def wait(self):
+        return self.join()
+
+    def _run(self):
+        """
+        Defines the task retrieval and processing logic for Thread/process
+        workers. Should be called from **run** method of respective
+        implementations.
+        """
+        while not self._stop_signal:
+            LOGGER.debug("%s reading message from queue.", self.id)
+
+            task = self._get_task()
+            if task is None:
+                self._stop_signal = True
+                continue
+
+            result = task.run()
+            self._process_result(result)
+
+        LOGGER.debug(
+            "%s - stopped. Pending tasks: %s", self.id, self._task_queue.qsize()
+        )
+
+    def _get_task(self):
         try:
-            return self._queue.get(block=not self._ephemeral)
+            return self._task_queue.get(block=not self._ephemeral)
         except queue.Empty:
             pass
 
         return None
 
-    def _process_result(self, result):
-        """Implementation specific processing of task result."""
-        pass
+
+class _AsyncWorker(_BaseWorker):
+    """
+    Base class for worker implementation that uses asyncio for processing tasks.
+    """
+
+    def is_running(self):
+        return not self._stop_signal
+
+    async def wait(self):
+        while self.is_running():
+            # Yield control to running tasks.
+            await asyncio.sleep(0)
+
+    async def start(self):
+        while not self._stop_signal:
+            LOGGER.debug("%s reading message from queue.", self.id)
+
+            task = await self._get_task()
+            if task is None:
+                self._stop_signal = True
+                continue
+
+            result = await task.run()
+            self._process_result(result)
+
+        LOGGER.debug(
+            "%s - stopped. Pending tasks: %s", self.id, self._task_queue.qsize()
+        )
+
+    async def _get_task(self):
+        if self._ephemeral:
+            try:
+                return self._task_queue.get_nowait()
+            except asyncio.QueueEmpty:
+                return None
+
+        return await self._task_queue.get()
