@@ -1,8 +1,22 @@
 [tool.poetry]
 name = "diffuse"
 version = "0.1.0"
-description = ""
+description = "Python Diffuse"
 authors = ["Sandeep Aggarwal <asandeep.me@gmail.com>"]
+license = "MIT"
+
+
+homepage = "https://asandeep.github.io/diffuse/"
+repository = "https://github.com/asandeep/diffuse.git"
+
+keywords = ["python3", "concurrency", "asyncio", "threading", "multiprocessing"]
+
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Framework :: AsyncIO",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Libraries :: Python Modules"
+]
 
 [tool.poetry.dependencies]
 python = "^3.6"
@@ -17,6 +31,7 @@ pytest-asyncio = "^0.14.0"
 asynctest = "^0.13.0"
 pytest-mock = "^3.3.1"
 pytest-cov = "^2.10.1"
+tox = "^3.20.1"
 
 [tool.black]
 line-length = 80
@@ -25,6 +40,18 @@ line-length = 80
 line_length = 80
 multi_line_output = 3
 include_trailing_comma = true
+
+[tool.tox]
+legacy_tox_ini = """
+[tox]
+isolated_build = true
+envlist = py36
+
+[testenv]
+whitelist_externals = poetry
+commands =
+    poetry run pytest --cov-report=xml --cov=diffuse
+"""
 
 [build-system]
 requires = ["poetry>=0.12"]
