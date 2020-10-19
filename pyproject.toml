@@ -5,6 +5,7 @@ description = "Python Diffuse"
 authors = ["Sandeep Aggarwal <asandeep.me@gmail.com>"]
 license = "MIT"
 
+readme = "README.md"
 
 homepage = "https://asandeep.github.io/diffuse/"
 repository = "https://github.com/asandeep/diffuse.git"
@@ -50,6 +51,7 @@ envlist = py36
 [testenv]
 whitelist_externals = poetry
 commands =
+    poetry install
     poetry run pytest --cov-report=xml --cov=diffuse
 """
 
