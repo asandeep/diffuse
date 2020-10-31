@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "diffuse"
-version = "0.1.0"
+version = "0.1.1"
 description = "Python Diffuse"
 authors = ["Sandeep Aggarwal <asandeep.me@gmail.com>"]
 license = "MIT"
