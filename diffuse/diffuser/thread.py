@@ -6,8 +6,6 @@ from concurrent import futures
 from diffuse import worker
 from diffuse.diffuser import base
 
-LOGGER = logging.getLogger(__name__)
-
 
 class _Task(object):
     def __init__(self, target, *args, **kwargs):
@@ -25,7 +23,6 @@ class _Task(object):
         except BaseException as exc:
             # A catch-all block to prevent thread from getting killed abruptly
             # in event of an exception.
-            LOGGER.error("Error while running target: %s", str(exc))
             self.future.set_exception(exc)
         else:
             self.future.set_result(result)

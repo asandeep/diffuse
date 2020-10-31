@@ -5,8 +5,6 @@ from concurrent import futures
 
 from diffuse import pool
 
-LOGGER = logging.getLogger(__name__)
-
 
 class _BaseDiffuser:
     """
@@ -37,6 +35,10 @@ class _BaseDiffuser:
     _WORKER_CLASS = None
 
     def __init__(self, target, ephemeral=False, max_workers=None):
+        self.log = logging.getLogger(
+            f"{self.__class__.__module__}.{self.__class__.__name__}"
+        )
+
         if not callable(target):
             raise TypeError("target must be a callable.")
 
@@ -53,7 +55,7 @@ class _BaseDiffuser:
 
         self._task_queue = self._init_task_queue()
         self._max_workers = max_workers or self._get_max_workers()
-        LOGGER.debug("Max workers: %s", self._max_workers)
+        self.log.debug("Max workers: %s", self._max_workers)
 
     @property
     def closed(self):
@@ -125,7 +127,7 @@ class _BaseDiffuser:
         The method should be called from `close` method by Diffuser
         implementation, when close signal is received.
         """
-        LOGGER.debug("Cancelling pending tasks.")
+        self.log.debug("Cancelling pending tasks.")
         while True:
             try:
                 task = self._task_queue.get_nowait()
@@ -163,7 +165,7 @@ class _SyncDiffuser(_BaseDiffuser):
         return {}
 
     def close(self, wait=True, cancel_pending=False):
-        LOGGER.debug("Close request received.")
+        self.log.debug("Close request received.")
         with self._close_lock:
             self._closed = True
 
@@ -213,7 +215,7 @@ class _ASyncDiffuser(_BaseDiffuser):
             return task.future
 
     async def close(self, wait=True, cancel_pending=False):
-        LOGGER.debug("Close request received.")
+        self.log.debug("Close request received.")
         with self._close_lock:
             self._closed = True
 

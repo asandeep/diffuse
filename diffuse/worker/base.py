@@ -2,8 +2,6 @@ import asyncio
 import logging
 import queue
 
-LOGGER = logging.getLogger(__name__)
-
 
 class _BaseWorker:
     """
@@ -18,6 +16,10 @@ class _BaseWorker:
     """
 
     def __init__(self, task_queue, ephemeral):
+        self.log = logging.getLogger(
+            f"{self.__class__.__module__}.{self.__class__.__name__}"
+        )
+
         self._task_queue = task_queue
         self._ephemeral = ephemeral
 
@@ -112,7 +114,7 @@ class _SyncWorker(_BaseWorker):
         implementations.
         """
         while not self._stop_signal:
-            LOGGER.debug("%s reading message from queue.", self.id)
+            self.log.debug("%s reading message from queue.", self.id)
 
             task = self._get_task()
             if task is None:
@@ -122,7 +124,7 @@ class _SyncWorker(_BaseWorker):
             result = task.run()
             self._process_result(result)
 
-        LOGGER.debug(
+        self.log.info(
             "%s - stopped. Pending tasks: %s", self.id, self._task_queue.qsize()
         )
 
@@ -150,7 +152,7 @@ class _AsyncWorker(_BaseWorker):
 
     async def start(self):
         while not self._stop_signal:
-            LOGGER.debug("%s reading message from queue.", self.id)
+            self.log.debug("%s reading message from queue.", self.id)
 
             task = await self._get_task()
             if task is None:
@@ -160,7 +162,7 @@ class _AsyncWorker(_BaseWorker):
             result = await task.run()
             self._process_result(result)
 
-        LOGGER.debug(
+        self.log.debug(
             "%s - stopped. Pending tasks: %s", self.id, self._task_queue.qsize()
         )
 

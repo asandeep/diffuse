@@ -27,4 +27,8 @@ class ThreadWorker(threading.Thread, base._SyncWorker):
 
     def run(self):
         """Overrides base implementation and calls worker's _run method."""
+        self.log.info(
+            "%s - started. Task count: %s", self.id, self._task_queue.qsize()
+        )
+
         self._run()

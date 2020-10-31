@@ -5,8 +5,6 @@ import math
 from diffuse import worker
 from diffuse.diffuser import base
 
-LOGGER = logging.getLogger(__name__)
-
 
 class _Task:
     """Task that runs Asynchronously."""

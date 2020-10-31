@@ -4,8 +4,6 @@ import queue
 
 from diffuse.worker import base
 
-LOGGER = logging.getLogger(__name__)
-
 
 class ProcessWorker(multiprocessing.Process, base._SyncWorker):
     """
@@ -33,6 +31,10 @@ class ProcessWorker(multiprocessing.Process, base._SyncWorker):
 
     def run(self):
         """Overrides base implementation and calls worker's _run method."""
+        self.log.info(
+            "%s - started. Task count: %s", self.id, self._task_queue.qsize()
+        )
+
         self._run()
 
     def _process_result(self, result):

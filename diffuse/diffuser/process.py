@@ -7,8 +7,6 @@ from concurrent import futures
 from diffuse import worker
 from diffuse.diffuser import base
 
-LOGGER = logging.getLogger(__name__)
-
 
 class _TaskInstance:
     """
