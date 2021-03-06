@@ -4,6 +4,7 @@ import threading
 from concurrent import futures
 
 from diffuse import pool
+import time
 
 
 class _BaseDiffuser:
@@ -139,6 +140,10 @@ class _BaseDiffuser:
 class _SyncDiffuser(_BaseDiffuser):
     """Base implementation for Synchronous diffusers i.e. Threads/Processes."""
 
+    # Time in milliseconds for which diffuser should wait before initializing a
+    # new worker, once task has been added to queue.
+    WORKER_INIT_DELAY = 1
+
     def diffuse(self, *args, **kwargs):
         with self._close_lock:
             if self._closed:
@@ -147,6 +152,8 @@ class _SyncDiffuser(_BaseDiffuser):
             task = self._TASK_CLASS(self._target, *args, **kwargs)
             self._diffuse(task)
 
+            # Allow available workers to pick up the task.
+            time.sleep(self.WORKER_INIT_DELAY / 1000)
             worker = self._init_worker(**self._worker_init_kwargs())
             if worker:
                 worker.start()
