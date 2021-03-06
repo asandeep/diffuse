@@ -1,6 +1,16 @@
 import asyncio
 import logging
 import queue
+import os
+
+
+# Duration in Seconds that an ephemeral worker will wait before stopping, if
+# there are no tasks in queue for processing. This can be used to prevent
+# aggressive killing of ephemeral workers when the tasks being processed are
+# short-lived. The default duration is 1 second.
+EPHEMERAL_WORKER_IDLE_TIMEOUT = int(
+    os.environ.get("EPHEMERAL_WORKER_IDLE_TIMEOUT", "1")
+)
 
 
 class _BaseWorker:
@@ -129,8 +139,9 @@ class _SyncWorker(_BaseWorker):
         )
 
     def _get_task(self):
+        timeout = EPHEMERAL_WORKER_IDLE_TIMEOUT if self._ephemeral else None
         try:
-            return self._task_queue.get(block=not self._ephemeral)
+            return self._task_queue.get(timeout=timeout)
         except queue.Empty:
             pass
 
