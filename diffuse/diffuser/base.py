@@ -1,10 +1,9 @@
 import asyncio
 import logging
 import threading
-from concurrent import futures
+import time
 
 from diffuse import pool
-import time
 
 
 class _BaseDiffuser:

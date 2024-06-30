@@ -1,6 +1,4 @@
-import logging
 import multiprocessing
-import queue
 
 from diffuse.worker import base
 

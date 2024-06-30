@@ -1,7 +1,5 @@
 import queue
 
-import pytest
-
 from diffuse import worker
 
 

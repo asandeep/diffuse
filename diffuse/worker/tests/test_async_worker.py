@@ -1,6 +1,6 @@
 import asyncio
+from unittest import mock
 
-import asynctest
 import pytest
 
 from diffuse import worker
@@ -11,7 +11,7 @@ class TestAsyncWorker:
     async def test__worker__process_task(self, mocker):
         task_queue = asyncio.Queue()
         mock_task = mocker.MagicMock()
-        mock_task.run = asynctest.CoroutineMock(return_value="testing")
+        mock_task.run = mock.AsyncMock(return_value="testing")
 
         async_worker = worker.AsyncWorker(
             task_queue=task_queue, ephemeral=False
@@ -52,7 +52,7 @@ class TestAsyncWorker:
     async def test__ephemeral_worker__process_task(self, mocker):
         task_queue = asyncio.Queue()
         mock_task = mocker.MagicMock()
-        mock_task.run = asynctest.CoroutineMock(return_value="testing")
+        mock_task.run = mock.AsyncMock(return_value="testing")
 
         await task_queue.put(mock_task)
 

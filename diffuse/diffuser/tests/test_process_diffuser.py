@@ -1,13 +1,10 @@
 import enum
 import os
-from concurrent import futures
 from contextlib import contextmanager
-from unittest import mock
 
 import pytest
 
 import diffuse
-from diffuse.diffuser.base import pool
 from diffuse.diffuser.tests import base
 
 
@@ -31,6 +28,7 @@ class MaxWorkerExpected(enum.Enum):
 
 @pytest.mark.parametrize("diffuser_type", [diffuse.Diffuser.PROCESS])
 class TestProcessDiffuser(base.BaseDiffuserTest):
+
     @pytest.fixture
     def future_running(self):
         return True
@@ -100,26 +98,26 @@ class TestProcessDiffuser(base.BaseDiffuserTest):
                 assert diffuser._max_workers == expected
 
     def test__diffuse(self, mocker, diffuser_type, future_running):
-        diffuser = super().test__diffuse(mocker, diffuser_type, future_running)
+        super().test__diffuse(mocker, diffuser_type, future_running)
 
-        assert not diffuser._pending_tasks
-        assert diffuser._stop_result_processor is True
-        assert not diffuser._result_processor.is_alive()
+        assert not self.diffuser._pending_tasks
+        assert self.diffuser._stop_result_processor is True
+        assert not self.diffuser._result_processor.is_alive()
 
     def test__diffuse__task_exception(
         self, mocker, diffuser_type, future_running
     ):
-        diffuser = super().test__diffuse__task_exception(
+        super().test__diffuse__task_exception(
             mocker, diffuser_type, future_running
         )
 
-        assert not diffuser._pending_tasks
-        assert diffuser._stop_result_processor is True
-        assert not diffuser._result_processor.is_alive()
+        assert not self.diffuser._pending_tasks
+        assert self.diffuser._stop_result_processor is True
+        assert not self.diffuser._result_processor.is_alive()
 
     def test__diffuse__close(self, mocker, diffuser_type):
-        diffuser = super().test__diffuse__close(mocker, diffuser_type)
+        super().test__diffuse__close(mocker, diffuser_type)
 
-        assert not diffuser._pending_tasks
-        assert diffuser._stop_result_processor is True
-        assert not diffuser._result_processor.is_alive()
+        assert not self.diffuser._pending_tasks
+        assert self.diffuser._stop_result_processor is True
+        assert not self.diffuser._result_processor.is_alive()

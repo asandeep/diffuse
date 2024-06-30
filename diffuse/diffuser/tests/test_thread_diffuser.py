@@ -1,12 +1,9 @@
 import os
-from concurrent import futures
 from contextlib import contextmanager
-from unittest import mock
 
 import pytest
 
 import diffuse
-from diffuse.diffuser.base import pool
 from diffuse.diffuser.tests import base
 
 

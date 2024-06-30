@@ -1,15 +1,11 @@
 import asyncio
 import math
-import os
 from contextlib import contextmanager
 from unittest import mock
 
-import asynctest
 import pytest
 
 import diffuse
-from diffuse import worker
-from diffuse.diffuser.base import pool
 
 
 @contextmanager
@@ -133,7 +129,7 @@ class TestAsyncDiffuser:
         async with diffuse.Diffuser.create(
             target=target, diffuser_type=diffuse.Diffuser.ASYNC, max_workers=1
         ) as diffuser:
-            mock_worker = asynctest.Mock(
+            mock_worker = mock.Mock(
                 diffuse.worker.AsyncWorker(diffuser._task_queue, False)
             )
             diffuser._worker_pool.add(mock_worker)
@@ -182,7 +178,7 @@ class TestAsyncDiffuser:
         )
         spy_pool_shutdown = mocker.spy(diffuser._worker_pool, "shutdown_async")
 
-        mock_worker = asynctest.Mock(
+        mock_worker = mock.Mock(
             diffuse.worker.AsyncWorker(diffuser._task_queue, False)
         )
         diffuser._worker_pool.add(mock_worker)

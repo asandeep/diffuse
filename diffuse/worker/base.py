@@ -1,8 +1,7 @@
 import asyncio
 import logging
-import queue
 import os
-
+import queue
 
 # Duration in Seconds that an ephemeral worker will wait before stopping, if
 # there are no tasks in queue for processing. This can be used to prevent

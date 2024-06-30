@@ -1,7 +1,5 @@
 import multiprocessing
 
-import pytest
-
 from diffuse import worker
 
 

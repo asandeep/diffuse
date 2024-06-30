@@ -2,7 +2,6 @@ import functools
 import gc
 from unittest import mock
 
-import asynctest
 import pytest
 
 from diffuse import pool
@@ -53,7 +52,7 @@ class TestWorkerPoolShutdown:
             )
 
             if coro:
-                mock_worker.wait = asynctest.CoroutineMock()
+                mock_worker.wait = mock.AsyncMock()
 
             return mock_worker
 
