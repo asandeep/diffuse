@@ -1,5 +1,4 @@
 import asyncio
-import logging
 import math
 
 from diffuse import worker

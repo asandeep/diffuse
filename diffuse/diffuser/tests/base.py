@@ -1,13 +1,9 @@
-import os
 import time
 from concurrent import futures
-from contextlib import contextmanager
-from unittest import mock
 
 import pytest
 
 import diffuse
-from diffuse.diffuser.base import pool
 
 
 def target(msg):
@@ -29,9 +25,10 @@ class BaseDiffuserTest:
             diffuse.Diffuser.create(target=None, diffuser_type=diffuser_type)
 
     def test__diffuse(self, mocker, diffuser_type, future_running):
-        with diffuse.Diffuser.create(
+        self.diffuser = diffuse.Diffuser.create(
             target=target, diffuser_type=diffuser_type
-        ) as diffuser:
+        )
+        with self.diffuser as diffuser:
             spy_async_worker = mocker.spy(diffuser, "_WORKER_CLASS")
 
             future = diffuser.diffuse("world")
@@ -49,14 +46,13 @@ class BaseDiffuserTest:
             )
             assert diffuser._worker_pool.size == 1
 
-        return diffuser
-
     def test__diffuse__task_exception(
         self, mocker, diffuser_type, future_running
     ):
-        with diffuse.Diffuser.create(
+        self.diffuser = diffuse.Diffuser.create(
             target=target_exception, diffuser_type=diffuser_type
-        ) as diffuser:
+        )
+        with self.diffuser as diffuser:
             spy_async_worker = mocker.spy(diffuser, "_WORKER_CLASS")
 
             future = diffuser.diffuse("world")
@@ -75,8 +71,6 @@ class BaseDiffuserTest:
                 diffuser._task_queue, False, **diffuser._worker_init_kwargs()
             )
             assert diffuser._worker_pool.size == 1
-
-        return diffuser
 
     def test__diffuse__task_consumed_by_worker(
         self, mocker, diffuser_type, future_running
@@ -98,8 +92,6 @@ class BaseDiffuserTest:
 
             assert diffuser._worker_pool.size == 0
 
-        return diffuser
-
     def test__diffuse__max_pool_size(
         self, mocker, diffuser_type, future_running
     ):
@@ -116,23 +108,19 @@ class BaseDiffuserTest:
 
             assert diffuser._worker_pool.size == 1
 
-        return diffuser
-
     def test__diffuse__close(self, mocker, diffuser_type):
-        diffuser = diffuse.Diffuser.create(
+        self.diffuser = diffuse.Diffuser.create(
             target=target, diffuser_type=diffuser_type
         )
-        spy_pool_shutdown = mocker.spy(diffuser._worker_pool, "shutdown")
+        spy_pool_shutdown = mocker.spy(self.diffuser._worker_pool, "shutdown")
 
-        future = diffuser.diffuse("world")
-        diffuser.close()
+        future = self.diffuser.diffuse("world")
+        self.diffuser.close()
 
-        assert diffuser.closed
+        assert self.diffuser.closed
         assert not future.cancelled()
         assert future.done()
         spy_pool_shutdown.assert_called_once_with(wait=True)
-
-        return diffuser
 
     def test__diffuse__close__no_wait(self, mocker, diffuser_type):
         diffuser = diffuse.Diffuser.create(
@@ -148,8 +136,6 @@ class BaseDiffuserTest:
         assert not future.done()
         spy_pool_shutdown.assert_called_once_with(wait=False)
 
-        return diffuser
-
     def test__diffuse__close__cancel_pending(
         self, mocker, diffuser_type, future_cancelled
     ):
@@ -157,7 +143,7 @@ class BaseDiffuserTest:
             target=target, diffuser_type=diffuser_type
         )
         spy_pool_shutdown = mocker.spy(diffuser._worker_pool, "shutdown")
-        mock_worker = mocker.patch.object(diffuser, "_WORKER_CLASS")
+        _ = mocker.patch.object(diffuser, "_WORKER_CLASS")
 
         future = diffuser.diffuse("world")
         diffuser.close(cancel_pending=True)
@@ -166,8 +152,6 @@ class BaseDiffuserTest:
         assert future.cancelled() == future_cancelled
         assert diffuser._task_queue.qsize() == 0
         spy_pool_shutdown.assert_called_once_with(wait=True)
-
-        return diffuser
 
     def test__diffuse__closed_diffuser(self, mocker, diffuser_type):
         diffuser = diffuse.Diffuser.create(
@@ -183,5 +167,3 @@ class BaseDiffuserTest:
 
         assert diffuser._task_queue.qsize() == 0
         assert diffuser._worker_pool.size == 0
-
-        return diffuser
