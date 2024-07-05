@@ -1,0 +1,44 @@
+name: Build & Test
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - diffuse/**/*.py
+
+  pull_request:
+    paths:
+      - diffuse/**/*.py
+
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.8", "3.9", "3.10", "3.11"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          pip install poetry
+          poetry install --with test
+
+      - name: Run test
+        run: poetry run pytest --cov-report=xml --cov=diffuse
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          flags: unittests
+          token: ${{ secrets.CODECOV_TOKEN }}
+          verbose: true
