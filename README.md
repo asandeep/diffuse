@@ -1,7 +1,7 @@
 # Python Diffuse
 
 [![Build Status](https://travis-ci.org/asandeep/diffuse.svg?branch=master)](https://travis-ci.org/asandeep/diffuse)
-[![codecov](https://codecov.io/gh/asandeep/diffuse/branch/master/graph/badge.svg)](https://codecov.io/gh/asandeep/diffuse)
+[![codecov](https://codecov.io/gh/asandeep/diffuse/graph/badge.svg?token=HOVZU54T7V)](https://codecov.io/gh/asandeep/diffuse)
 [![license](https://img.shields.io/pypi/l/diffuse.svg)](https://github.com/asandeep/diffuse/blob/master/LICENSE)
 [![Python Versions](https://img.shields.io/pypi/pyversions/diffuse.svg)](https://pypi.org/project/diffuse/)
 [![Package Version](https://img.shields.io/pypi/v/diffuse.svg)](https://pypi.org/project/diffuse/)
