@@ -3,7 +3,7 @@ authors = ["Sandeep Aggarwal <asandeep.me@gmail.com>"]
 description = "Python Diffuse"
 license = "MIT"
 name = "diffuse"
-version = "0.3.0"
+version = "0.3.1"
 
 readme = "README.md"
 
@@ -41,7 +41,6 @@ pytest = "^8.2.2"
 pytest-asyncio = "^0.23.7"
 pytest-cov = "^5.0.0"
 pytest-mock = "^3.14.0"
-tox = "^4.15.1"
 
 
 [tool.black]
@@ -50,19 +49,6 @@ line-length = 80
 
 [tool.isort]
 profile = "black"
-
-[tool.tox]
-legacy_tox_ini = """
-[tox]
-isolated_build = true
-envlist = py38, py39, py310
-
-[testenv]
-allowlist_externals = poetry
-commands =
-    poetry install --with test
-    poetry run pytest --cov-report=xml --cov=diffuse
-"""
 
 
 [build-system]
